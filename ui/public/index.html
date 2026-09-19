@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GYK Auto-Answer – Beállítások</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>GYK Auto-Answer</h1>
+      <p class="sub">Beállítások és botvezérlés · gyakorikerdesek.hu</p>
+    </header>
+
+    <section class="card status-card">
+      <div class="row">
+        <h2>Állapot</h2>
+        <span id="statusBadge" class="badge stopped">Leállítva</span>
+      </div>
+      <p id="statusDetail" class="muted">—</p>
+      <p id="credHint" class="hint"></p>
+    </section>
+
+    <section class="card">
+      <h2>Kategóriák</h2>
+      <p class="muted">Melyik témákban válaszoljon a bot? (több is választható)</p>
+      <div class="cat-actions">
+        <button type="button" id="btnSelectAll" class="btn ghost">Összes</button>
+        <button type="button" id="btnSelectNone" class="btn ghost">Egyik sem</button>
+        <button type="button" id="btnRefreshCats" class="btn ghost">Frissítés az oldalról</button>
+        <span id="catSource" class="muted small"></span>
+      </div>
+      <div id="categoryList" class="cat-grid"></div>
+    </section>
+
+    <section class="card">
+      <h2>Futás beállításai</h2>
+      <label class="field">
+        <span>Hány kérdésre válaszoljon egy futásban?</span>
+        <input type="number" id="maxQuestions" min="0" step="1" placeholder="0 = korlátlan" />
+        <span class="help">0 = korlátlan (a bot a rate limitig megy). Pl. 5 → öt válasz után kilép.</span>
+      </label>
+      <label class="toggle">
+        <input type="checkbox" id="dryRun" />
+        <span>Dry-run mód (generál, de <strong>nem</strong> posztol)</span>
+      </label>
+    </section>
+
+    <section class="card actions">
+      <button type="button" id="btnSave" class="btn primary">Beállítások mentése</button>
+      <button type="button" id="btnStart" class="btn success">Bot indítása</button>
+      <button type="button" id="btnStop" class="btn danger" disabled>Bot leállítása</button>
+      <span id="saveMsg" class="msg"></span>
+    </section>
+
+    <section class="card">
+      <div class="row">
+        <h2>Napló</h2>
+        <button type="button" id="btnClearLog" class="btn ghost small">Törlés</button>
+      </div>
+      <pre id="logView" class="log"></pre>
+    </section>
+
+    <footer class="muted small">
+      A beállítások a helyi <code>.env</code> fájlba kerülnek. Jelszó nem jelenik meg ezen az oldalon.
+    </footer>
+  </div>
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -28,7 +28,7 @@ export const config = {
   root,
   siteBaseUrl: (process.env.SITE_BASE_URL || 'https://www.gyakorikerdesek.hu').replace(/\/$/, ''),
   pollinations: {
-    baseUrl: (process.env.POLLINATIONS_BASE_URL || 'https://gen.pollinations.ai').replace(/\/$/, ''),
+    baseUrl: (process.env.POLLINATIONS_BASE_URL || 'https://text.pollinations.ai').replace(/\/$/, ''),
     apiKey: process.env.POLLINATIONS_API_KEY || '',
     model: process.env.POLLINATIONS_MODEL || 'openai',
   },
@@ -38,6 +38,8 @@ export const config = {
   },
   dryRun: bool(process.env.DRY_RUN, false),
   once: bool(process.env.ONCE, false),
+  /** 0 = korlátlan; >0 = ennyi válasz után kilép a futásból */
+  maxQuestionsPerRun: num(process.env.MAX_QUESTIONS_PER_RUN, 0),
   categories: list(process.env.CATEGORIES),
   keywords: list(process.env.KEYWORDS).map((k) => k.toLowerCase()),
   maxExistingAnswers: num(process.env.MAX_EXISTING_ANSWERS, 2),
@@ -53,10 +55,7 @@ export const config = {
 };
 
 export function assertConfigForMode() {
-  const mockAi = ['1', 'true', 'yes', 'on'].includes(String(process.env.MOCK_AI || '').trim().toLowerCase());
-  if (!config.pollinations.apiKey && !mockAi) {
-    throw new Error('Hiányzik a POLLINATIONS_API_KEY a .env fájlból (vagy állítsd MOCK_AI=true teszteléshez).');
-  }
+  // Pollinations kulcs opcionális — kulcs nélkül text.pollinations.ai-t használunk
   if (!config.dryRun) {
     if (!config.gk.username || !config.gk.password) {
       throw new Error('Éles módban kötelező a GK_USERNAME és GK_PASSWORD (soha ne hardkódold).');

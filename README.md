@@ -39,6 +39,19 @@ npm start
 npm run once
 ```
 
+
+## Grafikus beállítások (UI)
+
+Helyi webes felület a kategóriák, dry-run és a futásonkénti kérdéslimit állításához, valamint a bot indításához/leállításához:
+
+```bash
+npm run ui
+```
+
+Megnyílik a böngészőben: `http://127.0.0.1:3847/` (port: `UI_PORT`).
+
+A UI magyar feliratú. A kiválasztott kategóriák a `.env` `CATEGORIES` mezőjébe, a kérdéslimit a `MAX_QUESTIONS_PER_RUN` mezőbe kerül. A bot naplója élőben látszik. A meglévő CLI scripteket (`npm start`, `npm run dry-run`, stb.) nem változtatja.
+
 ## Környezeti változók
 
 Lásd `.env.example`. Legfontosabbak:
@@ -50,6 +63,7 @@ Lásd `.env.example`. Legfontosabbak:
 | `GK_PASSWORD` | jelszó |
 | `DRY_RUN` | `true` = nem posztol |
 | `CATEGORIES` | pl. `szamitastechnika,otthon` |
+| `MAX_QUESTIONS_PER_RUN` | futásonkénti max. válasz (0 = korlátlan) |
 | `ONLY_UNANSWERED` | `true` = `/{kat}__valasz-nelkul` lista |
 | `MAX_EXISTING_ANSWERS` | max. meglévő válasz (alap: 2) |
 | `DELAY_MIN_SEC` / `DELAY_MAX_SEC` | késleltetés válaszok között (60–120) |
@@ -70,9 +84,13 @@ gyk/
 ├── README.md
 ├── data/answered.json      # futás közben (gitignored)
 ├── storage/gk-session.json # Playwright session (gitignored)
+├── ui/public/              # beállítások UI (HTML/CSS/JS)
 └── src/
     ├── index.js            # fő ciklus
     ├── config.js           # env betöltés
+    ├── categories.js       # kategória lista (+ élő scrape)
+    ├── envFile.js          # .env olvasás/írás (UI)
+    ├── ui-server.js        # Express UI szerver (npm run ui)
     ├── logger.js
     ├── store.js            # megválaszolt ID-k + rate limit
     ├── scraper.js          # kérdéslista / részletek (HTTP)

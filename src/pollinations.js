@@ -13,7 +13,9 @@ Stílusod:
 - Csak a választ írd, semmi meta-kommentárt.`;
 
 /**
- * Válasz generálása Pollinations (OpenAI-kompatibilis) chat API-n.
+ * Válasz generálása Pollinations AI-jal.
+ * Kulcs nélkül: https://text.pollinations.ai (GET)
+ * Kulccsal (opcionális): https://gen.pollinations.ai/v1/chat/completions
  */
 export async function generateAnswer({ title, body, category }) {
   const { baseUrl, apiKey, model } = config.pollinations;
@@ -26,7 +28,6 @@ export async function generateAnswer({ title, body, category }) {
       'Ha fontos az adatvesztés elkerülése, inkább kattints a várakozásra, amíg a művelet befejeződik.'
     );
   }
-  if (!apiKey) throw new Error('POLLINATIONS_API_KEY hiányzik');
 
   const userContent = [
     category ? `Kategória: ${category}` : null,
@@ -37,9 +38,22 @@ export async function generateAnswer({ title, body, category }) {
     .filter(Boolean)
     .join('\n\n');
 
-  const url = `${baseUrl}/v1/chat/completions`;
   logger.debug('Pollinations kérés:', model, title.slice(0, 60));
 
+  let answer;
+  if (apiKey) {
+    answer = await generateWithChatApi(baseUrl, apiKey, model, userContent);
+  } else {
+    answer = await generateWithTextEndpoint(baseUrl, model, userContent);
+  }
+  if (!answer) {
+    throw new Error('Üres válasz érkezett a Pollinations API-tól.');
+  }
+  return sanitizeAnswer(answer);
+}
+
+async function generateWithChatApi(baseUrl, apiKey, model, userContent) {
+  const url = `${baseUrl.replace(/\/$/, '')}/v1/chat/completions`;
   const res = await fetch(url, {
     method: 'POST',
     headers: {
@@ -55,18 +69,28 @@ export async function generateAnswer({ title, body, category }) {
       ],
     }),
   });
-
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new Error(`Pollinations hiba ${res.status}: ${text.slice(0, 400)}`);
   }
-
   const data = await res.json();
-  const answer = data?.choices?.[0]?.message?.content?.trim();
-  if (!answer) {
-    throw new Error('Üres válasz érkezett a Pollinations API-tól.');
+  return data?.choices?.[0]?.message?.content?.trim();
+}
+
+async function generateWithTextEndpoint(baseUrl, model, userContent) {
+  const root = baseUrl.includes('text.pollinations.ai')
+    ? baseUrl.replace(/\/$/, '')
+    : 'https://text.pollinations.ai';
+  const prompt = `${SYSTEM_PROMPT}\n\n---\n\n${userContent}`;
+  const url = new URL(`${root}/${encodeURIComponent(prompt)}`);
+  url.searchParams.set('model', model || 'openai');
+  logger.debug('Kulcs nélküli Pollinations:', url.origin);
+  const res = await fetch(url.toString(), { method: 'GET' });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Pollinations text hiba ${res.status}: ${text.slice(0, 400)}`);
   }
-  return sanitizeAnswer(answer);
+  return (await res.text()).trim();
 }
 
 function sanitizeAnswer(text) {

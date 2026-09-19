@@ -205,8 +205,21 @@ export class GkBrowser {
       throw new Error('Nincs bejelentkezve: a válasz mező a /belepes oldalra irányít.');
     }
 
+    // A valódi form AJAX-szal töltődik: kattints a placeholder textarea-ra (getscript valasz.php)
+    const placeholder = page.locator('#valasz textarea[onclick*="valasz.php"], #valasz textarea[onfocus*="valasz.php"]').first();
+    if (await placeholder.count()) {
+      await placeholder.click();
+      await page.waitForSelector('#valaszok, #valasz form#valaszok, form#valaszok textarea[name="valasz"]', {
+        timeout: 20000,
+      });
+      await page.waitForTimeout(400);
+    }
+
     // Keressük a valódi formot
-    let form = page.locator('#valasz form').first();
+    let form = page.locator('form#valaszok').first();
+    if (!(await form.count())) {
+      form = page.locator('#valasz form').first();
+    }
     if (!(await form.count())) {
       form = page.locator('form[onsubmit*="valasz"]').first();
     }
@@ -221,7 +234,7 @@ export class GkBrowser {
       );
     }
 
-    const textarea = form.locator('textarea').first();
+    const textarea = form.locator('textarea[name="valasz"], textarea#aktiv, textarea').first();
     if (!(await textarea.count())) {
       throw new Error('A válasz formban nincs textarea.');
     }
@@ -230,7 +243,7 @@ export class GkBrowser {
     await textarea.fill(answerText);
 
     // Submit gomb
-    const submit = form.locator('button[type="submit"], button[id$="_sbmt"], input[type="submit"], button').first();
+    const submit = form.locator('#valaszok_sbmt, button[type="submit"], button[id$="_sbmt"], input[type="submit"], button').first();
 
     const responsePromise = page
       .waitForResponse(
