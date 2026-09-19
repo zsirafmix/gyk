@@ -5,6 +5,21 @@ import { generateAnswer } from './pollinations.js';
 import { findCandidateQuestions, loadQuestionDetails } from './scraper.js';
 import { GkBrowser } from './browser.js';
 import { randomDelayMs, sleep } from './rateLimit.js';
+import http from 'http';
+
+/** Optional health endpoint when PORT is set (Render Web Service fallback). */
+function startHealthServerIfNeeded() {
+  const port = Number(process.env.PORT);
+  if (!Number.isFinite(port) || port <= 0) return;
+  const server = http.createServer((req, res) => {
+    const ok = req.url === '/' || req.url === '/health' || req.url === '/healthz';
+    res.writeHead(ok ? 200 : 404, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end(ok ? 'ok\n' : 'not found\n');
+  });
+  server.listen(port, '0.0.0.0', () => {
+    logger.info(`Health HTTP a ${port} porton (/healthz)`);
+  });
+}
 
 async function processOne(store, browser, question) {
   logger.info('---');
@@ -55,6 +70,7 @@ async function processOne(store, browser, question) {
 }
 
 async function runLoop() {
+  startHealthServerIfNeeded();
   assertConfigForMode();
   const store = new AnswerStore();
 

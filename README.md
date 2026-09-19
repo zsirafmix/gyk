@@ -20,7 +20,7 @@ cd /workspace/gyk
 npm install
 npx playwright install chromium
 cp .env.example .env
-# Szerkeszd a .env-et: POLLINATIONS_API_KEY, GK_USERNAME, GK_PASSWORD
+# Szerkeszd a .env-et: GK_USERNAME, GK_PASSWORD (POLLINATIONS_API_KEY opcionális)
 ```
 
 ## Futtatás
@@ -37,6 +37,9 @@ npm start
 
 # Egy éles kör
 npm run once
+
+# Prod (Docker / Render): HEADLESS=true
+npm run start:prod
 ```
 
 
@@ -79,6 +82,9 @@ Lásd `.env.example`. Legfontosabbak:
 ```
 gyk/
 ├── package.json
+├── Dockerfile              # Playwright Node image → bot
+├── render.yaml             # Render Blueprint (Background Worker)
+├── .dockerignore
 ├── .env.example
 ├── .gitignore
 ├── README.md
@@ -121,6 +127,61 @@ Ellenőrizve élő oldalon (curl):
 ## Naplózás
 
 A posztolt / dry-run válaszok a konzolra és a `data/answered.json` fájlba kerülnek (ID, cím, URL, időbélyeg, előnézet).
+
+
+## Deploy Render.com-on (24/7)
+
+A bot Playwright Chromiumot használ, ezért **Docker** image-ből fut (hivatalos Playwright Node image). A Blueprint egy **Background Worker**-t definiál — ez nem alszik el idle HTTP miatt (ellentétben a free Web Service-szel).
+
+### Előfeltételek
+
+- GitHub repo: [zsirafmix/gyk](https://github.com/zsirafmix/gyk)
+- Render fiók ([render.com](https://render.com))
+- Background Workerhez **Starter** (vagy magasabb) plan — a free tier csak Web Service-t ad, ami ~15 perc inaktivitás után alszik
+
+### Lépések
+
+1. Toljad fel a kódot a GitHubra (`.env` **ne** legyen a repóban — a `.gitignore` kizárja).
+2. Render Dashboard → **New** → **Blueprint** → kapcsold a `zsirafmix/gyk` repót.
+3. Render megtalálja a `render.yaml`-t → **Apply**.
+4. A dashboardon állítsd be a titkokat (Blueprint `sync: false` mezők):
+   - `GK_USERNAME` — gyakorikerdesek.hu e-mail
+   - `GK_PASSWORD` — jelszó
+   - `POLLINATIONS_API_KEY` — opcionális (üresen a `text.pollinations.ai` megy)
+5. Ellenőrizd / igazítsd: `CATEGORIES`, `MAX_QUESTIONS_PER_RUN`, `DELAY_*`, `MAX_ANSWERS_PER_HOUR`, `POLL_INTERVAL_SEC`.
+6. `HEADLESS=true`, `DRY_RUN=false` (éles). Először érdemes `DRY_RUN=true`-val tesztelni a logokban.
+7. Deploy után a **Logs** fülön látod a bot futását.
+
+Kézi létrehozás Blueprint nélkül: **New → Background Worker → Docker**, Dockerfile path: `./Dockerfile`, ugyanazok az env változók.
+
+### Free Web Service alternatíva (alszik!)
+
+Ha csak free planed van:
+
+1. **New → Web Service → Docker** (ugyanaz a `Dockerfile`).
+2. Állítsd be ugyanazokat az env változókat.
+3. A konténer a `PORT` env változón `/healthz` health endpointot is indít (Render health checkhez).
+4. **Korlát:** free Web Service ~15 perc idle után alszik → a bot megáll, amíg új request nem ébreszti. 24/7-hez worker (fizetős) kell, vagy külső cron/ping (pl. UptimeRobot) a szolgáltatás URL-jére.
+
+### Állapot / perzisztencia
+
+- A Blueprint `disk` mountja: `/app/data` (answered.json + session: `data/gk-session.json`).
+- Disk nélkül (vagy free weben) a fájlok **ephemeralisak**: redeploy / sleep után elvesznek a megválaszolt ID-k és a session → újra bejelentkezik, esetleg újra ugyanarra a kérdésre válaszolhat.
+- Session / answered fájlok soha ne kerüljenek gitbe.
+
+### Korlátok és figyelmeztetések
+
+- **Playwright memória:** Chromium ~512 MB–1 GB+; Starter instance ajánlott, free/low RAM mellett OOM lehet.
+- **gyakorikerdesek.hu ÁSZF / rate limit:** az automatikus posztolás ütközhet az oldal feltételeivel. Saját felelősségre, mértékkel (`DELAY_*`, `MAX_ANSWERS_PER_HOUR`). Túl agresszív futás → ban / IP korlát.
+- **Titkok:** soha ne commitold a `.env`-et; csak a Render Dashboard Environment szekciójában add meg.
+- A helyi UI (`npm run ui`) Renderen nem kell — az csak fejlesztéshez van.
+
+### Helyi Docker teszt
+
+```bash
+docker build -t gyk-bot .
+docker run --rm -e GK_USERNAME=... -e GK_PASSWORD=... -e DRY_RUN=true gyk-bot
+```
 
 ## Hibaelhárítás
 

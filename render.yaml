@@ -1,0 +1,69 @@
+# Render Blueprint — GYK Auto-Answer bot
+# https://render.com/docs/blueprint-spec
+#
+# Prefer Background Worker (no sleep from idle HTTP). Workers need a paid plan
+# (Starter+). Free Web Services sleep after ~15 min inactivity — see README.
+#
+# Deploy: Dashboard → New → Blueprint → connect zsirafmix/gyk → apply.
+
+services:
+  - type: worker
+    name: gyk-bot
+    runtime: docker
+    plan: starter
+    region: frankfurt
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    autoDeploy: true
+    # Optional persistent disk for answered.json + session (Starter+).
+    # Without a disk, /app/data and /app/storage are ephemeral (reset on redeploy).
+    disk:
+      name: gyk-data
+      mountPath: /app/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HEADLESS
+        value: "true"
+      - key: DRY_RUN
+        value: "false"
+      - key: ONCE
+        value: "false"
+      # Secrets — set in the Render Dashboard (Blueprint sync: false = prompt on create)
+      - key: GK_USERNAME
+        sync: false
+      - key: GK_PASSWORD
+        sync: false
+      - key: POLLINATIONS_API_KEY
+        sync: false
+      - key: POLLINATIONS_BASE_URL
+        value: https://text.pollinations.ai
+      - key: POLLINATIONS_MODEL
+        value: openai
+      - key: CATEGORIES
+        value: szamitastechnika,otthon,elektronikus-eszkozok
+      - key: KEYWORDS
+        value: ""
+      - key: MAX_QUESTIONS_PER_RUN
+        value: "0"
+      - key: MAX_EXISTING_ANSWERS
+        value: "2"
+      - key: ONLY_UNANSWERED
+        value: "true"
+      - key: DELAY_MIN_SEC
+        value: "60"
+      - key: DELAY_MAX_SEC
+        value: "120"
+      - key: MAX_ANSWERS_PER_HOUR
+        value: "8"
+      - key: POLL_INTERVAL_SEC
+        value: "300"
+      - key: LOG_LEVEL
+        value: info
+      - key: SITE_BASE_URL
+        value: https://www.gyakorikerdesek.hu
+      - key: ANSWERED_DB_PATH
+        value: data/answered.json
+      - key: STORAGE_STATE_PATH
+        value: data/gk-session.json
